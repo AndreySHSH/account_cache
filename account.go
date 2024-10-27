@@ -2,6 +2,7 @@ package account_cache
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/lithammer/shortuuid"
 )
@@ -13,6 +14,7 @@ type User struct {
 }
 
 type Accounts struct {
+	mu           sync.RWMutex
 	accounts     []User
 	transactions []*map[string]transaction
 }
@@ -55,7 +57,11 @@ func (a *Accounts) AddTransaction(user any, score float64) {
 
 	for _, userAccount := range a.accounts {
 		if userAccount.meta == user {
+			a.mu.RLocker()
+			a.mu.Lock()
 			(*userAccount.link)[tid] = tr
+			a.mu.Unlock()
+			a.mu.RUnlock()
 			return
 		}
 	}
