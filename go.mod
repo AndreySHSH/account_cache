@@ -1,6 +1,6 @@
 module github.com/AndreySHSH/account_cache
 
-go 1.18
+go 1.22
 
 require github.com/lithammer/shortuuid v3.0.0+incompatible
 
