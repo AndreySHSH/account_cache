@@ -36,7 +36,9 @@ func (a *Accounts) GetAccountBalance(user any) (*User, float64, error) {
 		if userAccount.meta == user {
 			var balance float64
 			for id := range *userAccount.link {
+				a.mu.RLocker()
 				balance += (*userAccount.link)[id].amount
+				a.mu.RUnlock()
 			}
 
 			return &userAccount, balance, nil
@@ -57,11 +59,9 @@ func (a *Accounts) AddTransaction(user any, score float64) {
 
 	for _, userAccount := range a.accounts {
 		if userAccount.meta == user {
-			a.mu.RLocker()
 			a.mu.Lock()
 			(*userAccount.link)[tid] = tr
 			a.mu.Unlock()
-			a.mu.RUnlock()
 			return
 		}
 	}
