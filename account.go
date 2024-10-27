@@ -9,14 +9,14 @@ import (
 
 type User struct {
 	meta any
-	link *map[string]transaction
+	link *sync.Map
 	key  int
 }
 
 type Accounts struct {
 	mu           sync.RWMutex
 	accounts     []User
-	transactions []*map[string]transaction
+	transactions []*sync.Map
 }
 
 type transaction struct {
@@ -27,7 +27,7 @@ type transaction struct {
 func Init() Accounts {
 	return Accounts{
 		accounts:     []User{},
-		transactions: []*map[string]transaction{},
+		transactions: []*sync.Map{},
 	}
 }
 
@@ -35,11 +35,10 @@ func (a *Accounts) GetAccountBalance(user any) (*User, float64, error) {
 	for _, userAccount := range a.accounts {
 		if userAccount.meta == user {
 			var balance float64
-			for id := range *userAccount.link {
-				a.mu.RLocker()
-				balance += (*userAccount.link)[id].amount
-				a.mu.RUnlock()
-			}
+			userAccount.link.Range(func(key, value any) bool {
+				balance += value.(transaction).amount
+				return true
+			})
 
 			return &userAccount, balance, nil
 		}
@@ -48,31 +47,30 @@ func (a *Accounts) GetAccountBalance(user any) (*User, float64, error) {
 }
 
 func (a *Accounts) AddTransaction(user any, score float64) {
-	tid := shortuuid.New()
-	tr := transaction{
+	transactionId := shortuuid.New()
+	userTransaction := transaction{
 		method: "add",
 		amount: score,
-	}
-	trm := &map[string]transaction{
-		tid: tr,
 	}
 
 	for _, userAccount := range a.accounts {
 		if userAccount.meta == user {
-			a.mu.Lock()
-			(*userAccount.link)[tid] = tr
-			a.mu.Unlock()
+			userAccount.link.Store(transactionId, userTransaction)
 			return
 		}
 	}
 
-	a.transactions = append(a.transactions, trm)
-	for key, value := range a.transactions {
-		if value == trm {
+	data := sync.Map{}
+	data.Store(transactionId, userTransaction)
+
+	a.transactions = append(a.transactions, &data)
+	for keyUserTransactionStore, transactionStore := range a.transactions {
+
+		if _, ok := transactionStore.Load(transactionId); ok {
 			a.accounts = append(a.accounts, User{
 				meta: user,
-				link: a.transactions[key],
-				key:  key,
+				link: transactionStore,
+				key:  keyUserTransactionStore,
 			})
 			break
 		}
