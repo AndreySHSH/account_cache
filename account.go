@@ -1,7 +1,6 @@
 package account_cache
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/lithammer/shortuuid"
@@ -29,12 +28,13 @@ func Init() *Engin {
 
 func (engin *Engin) Transaction(user any, score float64) {
 	engin.queue <- task{
-		User:  user,
-		Score: score,
+		User:         user,
+		Score:        score,
+		Notification: nil,
 	}
 }
 
-func (engin *Engin) Balance(user any) (*User, float64, error) {
+func (engin *Engin) AsyncBalance(user any) float64 {
 	for {
 		if engin.read {
 			for _, userAccount := range engin.accounts {
@@ -45,12 +45,23 @@ func (engin *Engin) Balance(user any) (*User, float64, error) {
 						return true
 					})
 
-					return &userAccount, balance, nil
+					return balance
 				}
 			}
-			return nil, 0, errors.New("account not found")
+			return 0
 		}
 	}
+}
+
+func (engin *Engin) SyncBalance(user any) float64 {
+	notification := make(chan float64)
+
+	engin.queue <- task{
+		User:         user,
+		Score:        0,
+		Notification: notification,
+	}
+	return <-notification
 }
 
 func (engin *Engin) add(user any, score float64) {
@@ -95,6 +106,10 @@ func (engin *Engin) worker() {
 	for {
 		select {
 		case tr := <-engin.queue:
+			if tr.Notification != nil {
+				tr.Notification <- engin.AsyncBalance(tr.User)
+				continue
+			}
 			engin.lock()
 			engin.add(tr.User, tr.Score)
 			engin.unlock()

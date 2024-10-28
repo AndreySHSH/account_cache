@@ -14,6 +14,7 @@ type transaction struct {
 }
 
 type task struct {
-	User  any
-	Score float64
+	User         any
+	Score        float64
+	Notification chan float64
 }
