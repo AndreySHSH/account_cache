@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestAccount_Add - add transaction and check balance
-func TestAccount_Add(t *testing.T) {
+// TestAccountAddTransactions - add transaction and check balance
+func TestAccountAddTransactions(t *testing.T) {
 	cases := []struct {
 		Name     string
 		UserName string
