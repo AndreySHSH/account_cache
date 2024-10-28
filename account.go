@@ -83,15 +83,12 @@ func (engin *Engin) add(user any, score float64) {
 	data.Store(transactionId, userTransaction)
 
 	engin.transactions = append(engin.transactions, &data)
-	for keyUserTransactionStore, transactionStore := range engin.transactions {
-		if _, ok := transactionStore.Load(transactionId); ok {
-			engin.accounts = append(engin.accounts, User{
-				meta: user,
-				link: transactionStore,
-				key:  keyUserTransactionStore,
-			})
-			break
-		}
+	transactionStore := engin.transactions[len(engin.transactions)-1]
+	if _, ok := transactionStore.Load(transactionId); ok {
+		engin.accounts = append(engin.accounts, User{
+			meta: user,
+			link: transactionStore,
+		})
 	}
 }
 

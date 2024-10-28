@@ -5,7 +5,6 @@ import "sync"
 type User struct {
 	meta any
 	link *sync.Map
-	key  int
 }
 
 type transaction struct {
