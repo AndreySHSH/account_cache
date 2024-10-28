@@ -47,7 +47,7 @@ func (a *Engin) GetAccountBalance(user any) (*User, float64, error) {
 		if userAccount.meta == user {
 			var balance float64
 			userAccount.link.Range(func(key, value any) bool {
-				balance += value.(transaction).amount
+				balance = balance + value.(transaction).amount
 				return true
 			})
 
