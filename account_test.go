@@ -3,6 +3,7 @@ package account_cache
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 type Us struct {
@@ -11,18 +12,16 @@ type Us struct {
 }
 
 func TestAccount_Add(t *testing.T) {
-
+	//t.Parallel()
 	account := Init()
+	account.Transaction("1", 1)
 
 	for i := 0; i < 1000; i++ {
-		account.AddTransaction("123", 200)
+		go account.Transaction("123", 1)
 	}
-	//account.AddTransaction(user, 200)
-	//account.AddTransaction(user, 200)
-	//account.AddTransaction(user, 200)
-	//account.AddTransaction(user, -200)
 
-	ac, f, err := account.GetAccountBalance("123")
+	ac, f, err := account.Balance("123")
 	fmt.Println(ac, f, err)
+	time.Sleep(1 * time.Second)
 
 }
