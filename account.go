@@ -1,3 +1,4 @@
+// Package account_cache - synchronous and asynchronous work with account balances
 package account_cache
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/lithammer/shortuuid"
 )
 
+// Engin - engine for caching user account balance
 type Engin struct {
 	queue        chan task
 	read         bool
@@ -13,19 +15,21 @@ type Engin struct {
 	transactions []*sync.Map
 }
 
-func Init() *Engin {
-	e := &Engin{
-		queue: make(chan task, 100000),
-
+// Init - Engin struct
+func Init(queueBufferSize int64) *Engin {
+	engin := &Engin{
+		queue:        make(chan task, queueBufferSize),
 		accounts:     []User{},
 		transactions: []*sync.Map{},
 	}
 
-	go e.worker()
+	// run queue worker reader
+	go engin.worker()
 
-	return e
+	return engin
 }
 
+// Transaction - public method for adding transactions
 func (engin *Engin) Transaction(user any, score float64) {
 	engin.queue <- task{
 		User:         user,
@@ -34,6 +38,7 @@ func (engin *Engin) Transaction(user any, score float64) {
 	}
 }
 
+// AsyncBalance - asynchronous method for obtaining account balance
 func (engin *Engin) AsyncBalance(user any) float64 {
 	for _, userAccount := range engin.accounts {
 		if userAccount.meta == user {
@@ -42,13 +47,13 @@ func (engin *Engin) AsyncBalance(user any) float64 {
 				balance = balance + value.(transaction).amount
 				return true
 			})
-
 			return balance
 		}
 	}
 	return 0
 }
 
+// SyncBalance - synchronous method for obtaining account balance
 func (engin *Engin) SyncBalance(user any) float64 {
 	notification := make(chan float64)
 
@@ -60,10 +65,10 @@ func (engin *Engin) SyncBalance(user any) float64 {
 	return <-notification
 }
 
+// add - adding a transaction to storage
 func (engin *Engin) add(user any, score float64) {
 	transactionId := shortuuid.New()
 	userTransaction := transaction{
-		method: "add",
 		amount: score,
 	}
 
@@ -90,6 +95,7 @@ func (engin *Engin) add(user any, score float64) {
 	}
 }
 
+// worker - queue worker
 func (engin *Engin) worker() {
 	for {
 		select {

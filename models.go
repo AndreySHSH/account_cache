@@ -9,7 +9,6 @@ type User struct {
 }
 
 type transaction struct {
-	method string
 	amount float64
 }
 
