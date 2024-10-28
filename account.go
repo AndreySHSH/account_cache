@@ -38,7 +38,7 @@ func Init() *Engin {
 		transactions: []*sync.Map{},
 	}
 
-	e.readQueue()
+	go e.readQueue()
 	return e
 }
 
