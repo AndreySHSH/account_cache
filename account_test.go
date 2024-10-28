@@ -36,7 +36,7 @@ func TestAccountAddTransactions(t *testing.T) {
 
 	for _, c := range cases {
 		account := Init(100000)
-
+		
 		for i := 0; i < 1000; i++ {
 			account.Transaction(c.UserName, c.Score)
 		}

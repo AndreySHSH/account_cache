@@ -1,7 +1,8 @@
-// Package account_cache - synchronous and asynchronous work with account balances
+// Package account_cache - synchronous work with account balances
 package account_cache
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/lithammer/shortuuid"
@@ -30,16 +31,31 @@ func Init(queueBufferSize int64) *Engin {
 }
 
 // Transaction - public method for adding transactions
-func (engin *Engin) Transaction(user any, score float64) {
+func (engin *Engin) Transaction(user any, score float64) (transactionId string) {
+	tr := make(chan string)
 	engin.queue <- task{
-		User:         user,
-		Score:        score,
-		Notification: nil,
+		user:         user,
+		score:        score,
+		notification: nil,
+		transaction:  tr,
 	}
+	transactionId = <-tr
+	return
 }
 
-// AsyncBalance - asynchronous method for obtaining account balance
-func (engin *Engin) AsyncBalance(user any) float64 {
+// Rollback - cancel transaction
+func (engin *Engin) Rollback(user any, transactionId string) error {
+	for _, userAccount := range engin.accounts {
+		if userAccount.meta == user {
+			userAccount.link.Delete(transactionId)
+			return nil
+		}
+	}
+	return errors.New("user not found")
+}
+
+// asyncBalance - asynchronous method for obtaining account balance
+func (engin *Engin) asyncBalance(user any) float64 {
 	for _, userAccount := range engin.accounts {
 		if userAccount.meta == user {
 			var balance float64
@@ -58,15 +74,15 @@ func (engin *Engin) SyncBalance(user any) float64 {
 	notification := make(chan float64)
 
 	engin.queue <- task{
-		User:         user,
-		Score:        0,
-		Notification: notification,
+		user:         user,
+		score:        0,
+		notification: notification,
 	}
 	return <-notification
 }
 
 // add - adding a transaction to storage
-func (engin *Engin) add(user any, score float64) {
+func (engin *Engin) add(user any, score float64) string {
 	transactionId := shortuuid.New()
 	userTransaction := transaction{
 		amount: score,
@@ -75,7 +91,7 @@ func (engin *Engin) add(user any, score float64) {
 	for _, userAccount := range engin.accounts {
 		if userAccount.meta == user {
 			userAccount.link.Store(transactionId, userTransaction)
-			return
+			return transactionId
 		}
 	}
 
@@ -90,6 +106,7 @@ func (engin *Engin) add(user any, score float64) {
 			link: transactionStore,
 		})
 	}
+	return transactionId
 }
 
 // worker - queue worker
@@ -97,11 +114,11 @@ func (engin *Engin) worker() {
 	for {
 		select {
 		case tr := <-engin.queue:
-			if tr.Notification != nil {
-				tr.Notification <- engin.AsyncBalance(tr.User)
+			if tr.notification != nil {
+				tr.notification <- engin.asyncBalance(tr.user)
 				continue
 			}
-			engin.add(tr.User, tr.Score)
+			tr.transaction <- engin.add(tr.user, tr.score)
 		}
 	}
 }
