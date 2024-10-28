@@ -2,6 +2,7 @@ package account_cache
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/lithammer/shortuuid"
@@ -25,6 +26,7 @@ type Tr struct {
 
 type Engin struct {
 	Queue chan Tr
+	Read  bool
 
 	accounts     []User
 	transactions []*sync.Map
@@ -43,18 +45,22 @@ func Init() *Engin {
 }
 
 func (a *Engin) GetAccountBalance(user any) (*User, float64, error) {
-	for _, userAccount := range a.accounts {
-		if userAccount.meta == user {
-			var balance float64
-			userAccount.link.Range(func(key, value any) bool {
-				balance = balance + value.(transaction).amount
-				return true
-			})
+	for {
+		if a.Read {
+			for _, userAccount := range a.accounts {
+				if userAccount.meta == user {
+					var balance float64
+					userAccount.link.Range(func(key, value any) bool {
+						balance = balance + value.(transaction).amount
+						return true
+					})
 
-			return &userAccount, balance, nil
+					return &userAccount, balance, nil
+				}
+			}
+			return nil, 0, errors.New("account not found")
 		}
 	}
-	return nil, 0, errors.New("account not found")
 }
 
 func (a *Engin) AddTransaction(user any, score float64) {
@@ -63,6 +69,8 @@ func (a *Engin) AddTransaction(user any, score float64) {
 		method: "add",
 		amount: score,
 	}
+
+	fmt.Println("log transaction add", userTransaction)
 
 	for _, userAccount := range a.accounts {
 		if userAccount.meta == user {
@@ -92,7 +100,9 @@ func (a *Engin) readQueue() {
 	for {
 		select {
 		case tr := <-a.Queue:
+			a.Read = false
 			a.AddTransaction(tr.User, tr.Score)
+			a.Read = true
 		}
 	}
 }
