@@ -31,6 +31,7 @@ account := Init(bufferSize) // buffer queue size
 // use if the user account has not yet been created
 if account.AsyncBalance(user) == 0 { 
     account.Transaction(user, score)
+    _ = account.SyncBalance(user)
 }
 
 for i := 0; i < 1000; i++ {
