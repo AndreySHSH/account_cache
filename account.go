@@ -35,22 +35,18 @@ func (engin *Engin) Transaction(user any, score float64) {
 }
 
 func (engin *Engin) AsyncBalance(user any) float64 {
-	for {
-		if engin.read {
-			for _, userAccount := range engin.accounts {
-				if userAccount.meta == user {
-					var balance float64
-					userAccount.link.Range(func(key, value any) bool {
-						balance = balance + value.(transaction).amount
-						return true
-					})
+	for _, userAccount := range engin.accounts {
+		if userAccount.meta == user {
+			var balance float64
+			userAccount.link.Range(func(key, value any) bool {
+				balance = balance + value.(transaction).amount
+				return true
+			})
 
-					return balance
-				}
-			}
-			return 0
+			return balance
 		}
 	}
+	return 0
 }
 
 func (engin *Engin) SyncBalance(user any) float64 {
@@ -94,14 +90,6 @@ func (engin *Engin) add(user any, score float64) {
 	}
 }
 
-func (engin *Engin) lock() {
-	engin.read = false
-}
-
-func (engin *Engin) unlock() {
-	engin.read = true
-}
-
 func (engin *Engin) worker() {
 	for {
 		select {
@@ -110,9 +98,7 @@ func (engin *Engin) worker() {
 				tr.Notification <- engin.AsyncBalance(tr.User)
 				continue
 			}
-			engin.lock()
 			engin.add(tr.User, tr.Score)
-			engin.unlock()
 		}
 	}
 }
