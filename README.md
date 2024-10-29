@@ -10,12 +10,12 @@ bufferSize := 100000
 user := "test"
 score := 1000
 
-account := Init(bufferSize) // buffer queue size
+account := Init(bufferSize) // buffer queue size.
 
 if wallet := account.CreateWallet(user); wallet == nil {
     // if wallet == nil your wallet created now. 
-    // wallet ready to create transaction
-    account.Transaction(user, 100) // add first default balance 
+    // wallet ready to create transaction.
+    account.Transaction(user, 100) // add first default balance.
 }
 
 for i := 0; i < 1000; i++ {
