@@ -1,6 +1,8 @@
 package account_cache
 
-import "sync"
+import (
+	"sync"
+)
 
 type User struct {
 	meta any
@@ -10,8 +12,10 @@ type User struct {
 func (user *User) HistoryLength() (length int64) {
 	user.link.Range(func(key, value interface{}) bool {
 		length += 1
+
 		return true
 	})
+
 	return
 }
 

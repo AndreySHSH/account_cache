@@ -8,6 +8,8 @@ import (
 
 // TestAccountAddTransactions - add transaction and check balance
 func TestAccountAddTransactions(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		Name     string
 		UserName string
@@ -46,6 +48,7 @@ func TestAccountAddTransactions(t *testing.T) {
 		}
 
 		balance := account.SyncBalance(c.UserName)
+
 		assert.Equal(t, balance, c.Expected)
 	}
 }
