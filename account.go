@@ -43,6 +43,22 @@ func (engin *Engin) Transaction(user any, score float64) (transactionId string) 
 	return
 }
 
+func (engin *Engin) CreateWallet(user any) *User {
+	for _, account := range engin.accounts {
+		if account.meta == user {
+			return &account
+		}
+	}
+	data := sync.Map{}
+	engin.transactions = append(engin.transactions, &data)
+	transactionStore := engin.transactions[len(engin.transactions)-1]
+	engin.accounts = append(engin.accounts, User{
+		meta: user,
+		link: transactionStore,
+	})
+	return nil
+}
+
 // Rollback - cancel transaction
 func (engin *Engin) Rollback(user any, transactionId string) error {
 	for _, userAccount := range engin.accounts {
@@ -52,21 +68,6 @@ func (engin *Engin) Rollback(user any, transactionId string) error {
 		}
 	}
 	return errors.New("user not found")
-}
-
-// asyncBalance - asynchronous method for obtaining account balance
-func (engin *Engin) asyncBalance(user any) float64 {
-	for _, userAccount := range engin.accounts {
-		if userAccount.meta == user {
-			var balance float64
-			userAccount.link.Range(func(key, value any) bool {
-				balance = balance + value.(transaction).amount
-				return true
-			})
-			return balance
-		}
-	}
-	return 0
 }
 
 // SyncBalance - synchronous method for obtaining account balance
@@ -107,6 +108,21 @@ func (engin *Engin) add(user any, score float64) string {
 		})
 	}
 	return transactionId
+}
+
+// asyncBalance - asynchronous method for obtaining account balance
+func (engin *Engin) asyncBalance(user any) float64 {
+	for _, userAccount := range engin.accounts {
+		if userAccount.meta == user {
+			var balance float64
+			userAccount.link.Range(func(key, value any) bool {
+				balance = balance + value.(transaction).amount
+				return true
+			})
+			return balance
+		}
+	}
+	return 0
 }
 
 // worker - queue worker
