@@ -7,6 +7,14 @@ type User struct {
 	link *sync.Map
 }
 
+func (user *User) HistoryLength() (length int64) {
+	user.link.Range(func(key, value interface{}) bool {
+		length += 1
+		return true
+	})
+	return
+}
+
 type transaction struct {
 	amount float64
 }
