@@ -193,7 +193,9 @@ func (engin *Engin) worker() {
 	for {
 		t := <-engin.queue
 		if t.tt == "current" {
+			t.transaction <- engin.current(t.user, t.score)
 
+			continue
 		}
 		if t.notification != nil {
 			t.notification <- engin.asyncBalance(t.user)
