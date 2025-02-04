@@ -37,6 +37,23 @@ func (engin *Engin) Transaction(user any, score float64) (transactionId string) 
 		score:        score,
 		notification: nil,
 		transaction:  tid,
+		tt:           "transaction",
+	}
+
+	transactionId = <-tid
+
+	return
+}
+
+// SetCurrentAccountBalance - set default balance.
+func (engin *Engin) SetCurrentAccountBalance(user any, score float64) (transactionId string) {
+	tid := make(chan string)
+	engin.queue <- task{
+		user:         user,
+		score:        score,
+		notification: nil,
+		transaction:  tid,
+		tt:           "current",
 	}
 
 	transactionId = <-tid
@@ -73,7 +90,7 @@ func (engin *Engin) Rollback(user any, transactionId string) error {
 			return nil
 		}
 	}
-	
+
 	return errors.New("user not found")
 }
 
@@ -121,6 +138,38 @@ func (engin *Engin) add(user any, score float64) string {
 	return transactionId
 }
 
+// current - current balance.
+func (engin *Engin) current(user any, score float64) string {
+	transactionId := shortuuid.New()
+	userTransaction := transaction{
+		amount: score,
+	}
+
+	for _, userAccount := range engin.accounts {
+		if userAccount.meta == user {
+			userAccount.link = &sync.Map{}
+			userAccount.link.Store(transactionId, userTransaction)
+
+			return transactionId
+		}
+	}
+
+	data := sync.Map{}
+	data.Store(transactionId, userTransaction)
+
+	engin.transactions = append(engin.transactions, &data)
+	transactionStore := engin.transactions[len(engin.transactions)-1]
+
+	if _, ok := transactionStore.Load(transactionId); ok {
+		engin.accounts = append(engin.accounts, User{
+			meta: user,
+			link: transactionStore,
+		})
+	}
+
+	return transactionId
+}
+
 // asyncBalance - asynchronous method for obtaining account balance.
 func (engin *Engin) asyncBalance(user any) float64 {
 	for _, userAccount := range engin.accounts {
@@ -143,6 +192,9 @@ func (engin *Engin) asyncBalance(user any) float64 {
 func (engin *Engin) worker() {
 	for {
 		t := <-engin.queue
+		if t.tt == "current" {
+
+		}
 		if t.notification != nil {
 			t.notification <- engin.asyncBalance(t.user)
 

@@ -28,4 +28,5 @@ type task struct {
 	score        float64
 	notification chan float64
 	transaction  chan string
+	tt           string
 }
