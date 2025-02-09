@@ -37,7 +37,6 @@ func (engin *Engin) Transaction(user any, score float64) (transactionId string) 
 		score:        score,
 		notification: nil,
 		transaction:  tid,
-		tt:           "transaction",
 	}
 
 	transactionId = <-tid
@@ -53,7 +52,7 @@ func (engin *Engin) SetCurrentAccountBalance(user any, score float64) (transacti
 		score:        score,
 		notification: nil,
 		transaction:  tid,
-		tt:           "current",
+		action:       "set_current_balance",
 	}
 
 	transactionId = <-tid
@@ -144,27 +143,14 @@ func (engin *Engin) current(user any, score float64) string {
 	userTransaction := transaction{
 		amount: score,
 	}
-
 	for _, userAccount := range engin.accounts {
 		if userAccount.meta == user {
-			userAccount.link = &sync.Map{}
+			userAccount.link.Range(func(key, value interface{}) bool {
+				userAccount.link.Delete(key)
+				return true
+			})
 			userAccount.link.Store(transactionId, userTransaction)
-
-			return transactionId
 		}
-	}
-
-	data := sync.Map{}
-	data.Store(transactionId, userTransaction)
-
-	engin.transactions = append(engin.transactions, &data)
-	transactionStore := engin.transactions[len(engin.transactions)-1]
-
-	if _, ok := transactionStore.Load(transactionId); ok {
-		engin.accounts = append(engin.accounts, User{
-			meta: user,
-			link: transactionStore,
-		})
 	}
 
 	return transactionId
@@ -192,7 +178,7 @@ func (engin *Engin) asyncBalance(user any) float64 {
 func (engin *Engin) worker() {
 	for {
 		t := <-engin.queue
-		if t.tt == "current" {
+		if t.action == "set_current_balance" {
 			t.transaction <- engin.current(t.user, t.score)
 
 			continue
